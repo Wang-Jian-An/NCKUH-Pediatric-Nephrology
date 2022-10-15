@@ -5,7 +5,8 @@ from tqdm import tqdm
 
 # 建立每個子目錄路徑
 main_raw_data_path = "raw_data/IDH data（分析用）"
-each_patient_path = [i for i in os.listdir(main_raw_data_path) if i not in ["Patient_data", "Dialysis_data"]]
+each_patient_path = [i for i in os.listdir(main_raw_data_path) if "Patient " in i]
+blood_pressure_column_list = ["Art BP Systolic", "Art BP Diastolic",	"Art BP Mean",	"NBP Systolic",	"NBP Diastolic", "NBP Mean"]
 
 try:
     os.mkdir(os.path.join(main_raw_data_path, "Patient_data"))
@@ -41,8 +42,11 @@ for one_patient_path in tqdm(each_patient_path):
     vital_sign_data = pd.read_excel( os.path.join(main_raw_data_path, one_patient_path, patient_data[0]), sheet_name = "Vital signs")
     measure_data = pd.read_excel( os.path.join(main_raw_data_path, one_patient_path, patient_data[0]), sheet_name = "Lab" )
     vital_sign_data["Patient"] = patient_ID
+    if "記錄時間" in vital_sign_data.columns.tolist():
+        vital_sign_data = vital_sign_data.rename(columns = {"記錄時間": "Time"})
+    
     measure_data["Patient"] = patient_ID
-    vital_sign_data = vital_sign_data[vital_sign_data.columns.tolist()[-1:] + vital_sign_data.columns.tolist()[:-1]]
+    vital_sign_data = vital_sign_data[["Patient", "Time", "Heart Rate"] + blood_pressure_column_list]
     measure_data = measure_data[measure_data.columns.tolist()[-1:] + measure_data.columns.tolist()[:-1]]
     
     writer = pd.ExcelWriter(os.path.join(main_raw_data_path, "Patient_data/Patient_data_{}.xlsx".format(patient_ID)))
