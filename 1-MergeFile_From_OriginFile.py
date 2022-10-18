@@ -1,3 +1,5 @@
+# 本程式碼將合併所有資料以及判斷是否有低血壓
+
 import os
 import numpy as np
 import pandas as pd
@@ -38,15 +40,24 @@ for one_patient_path in tqdm(each_patient_path):
     all_dialysis_data = all_dialysis_data[["Patient"] + original_columns]
     all_dialysis_data.to_excel( os.path.join(main_raw_data_path, "Dialysis_data/Dialysis_data_Patient-{}.xlsx".format(patient_ID)), index = None )
     
-    # 讀取病人基本資料，把病人 ID 輸入進去        
+    # 讀取病人基本資料，把病人 ID 輸入進去，過程中要加上判斷是否有 IDH  
     vital_sign_data = pd.read_excel( os.path.join(main_raw_data_path, one_patient_path, patient_data[0]), sheet_name = "Vital signs")
     measure_data = pd.read_excel( os.path.join(main_raw_data_path, one_patient_path, patient_data[0]), sheet_name = "Lab" )
+    criterian_data = pd.read_excel( os.path.join(main_raw_data_path, one_patient_path, patient_data[0]), sheet_name = "Def")
+    
+    # 將 Vital Sign 中「記錄時間」欄位名稱改為「Time」
     vital_sign_data["Patient"] = patient_ID
     if "記錄時間" in vital_sign_data.columns.tolist():
         vital_sign_data = vital_sign_data.rename(columns = {"記錄時間": "Time"})
     
+    criterian_value = criterian_data.columns.tolist()[0]
+    criterian_value = criterian_value[-2:] if "<" in criterian_value else criterian_value
+    criterian_value = eval(criterian_value.split(" ")[-1])
+    
+    vital_sign_data["IDH"] = vital_sign_data.apply(lambda x: 1 if x["Art BP Systolic"] < criterian_value or x["NBP Systolic"] < criterian_value else 0, axis = 1)
+    
     measure_data["Patient"] = patient_ID
-    vital_sign_data = vital_sign_data[["Patient", "Time", "Heart Rate"] + blood_pressure_column_list]
+    vital_sign_data = vital_sign_data[["Patient", "Time", "Heart Rate", "IDH"] + blood_pressure_column_list]
     measure_data = measure_data[measure_data.columns.tolist()[-1:] + measure_data.columns.tolist()[:-1]]
     
     writer = pd.ExcelWriter(os.path.join(main_raw_data_path, "Patient_data/Patient_data_{}.xlsx".format(patient_ID)))

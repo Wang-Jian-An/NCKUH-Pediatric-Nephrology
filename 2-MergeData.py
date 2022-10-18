@@ -25,18 +25,22 @@ def match_data(start_of_the_time, end_of_the_time):
     else:
         return np.nan
 
-for one_patient in vital_signs_data[:1]:
-    print(one_patient)
-    select_vital_signs_data = vital_signs_data.query("Patient == @one_patient")
-    print(select_vital_signs_data)
-    select_vital_signs_data["Match_Pressure"] = select_vital_signs_data.apply(lambda x: match_data(start_of_the_time = x["start_of_the_time_of_data"], 
-                                                                                                   end_of_the_time = x["end_of_the_time_of_data"]), axis = 1)      
-select_vital_signs_data.head()
+total_vital_signs_data = list()
+for one_patient in vital_signs_data["Patient"].unique().tolist()[:1]:
+    select_vital_signs_data = vital_signs_data.query("Patient == @one_patient").reset_index(drop = True)
+    select_vital_signs_data.loc[:, "Match_Pressure"] = select_vital_signs_data.apply(lambda x: match_data(start_of_the_time = x["start_of_the_time_of_data"], 
+                                                                                                          end_of_the_time = x["end_of_the_time_of_data"]), axis = 1)      
 
-# # 排除血壓沒有配對到的資料，以及沒有 Outcome 的資料
-# temperature_bp_raw_data = vital_signs_data[(vital_signs_data["Match_Pressure"].isna() == False) & (vital_signs_data["Art BP Mean"].isna() == False)].reset_index(drop = True)
+    # 排除血壓沒有配對到的資料，以及沒有 Outcome 的資料
+    select_vital_signs_data = select_vital_signs_data[(select_vital_signs_data["Match_Pressure"].isna() == False)].reset_index(drop = True)
+   
+    # 把合併後的 Dialysis Data 與原先的 Vital Signs 資料合併
+    select_vital_signs_data = pd.concat([
+        select_vital_signs_data, pd.DataFrame(select_vital_signs_data["Match_Pressure"].tolist()).drop(columns = ["time"])
+    ], axis = 1).drop(columns = ["Match_Pressure"])
 
-# vital_signs_data = pd.concat([
-#     vital_signs_data, pd.DataFrame(vital_signs_data["Match_Pressure"].tolist()).drop(columns = ["time"])
-# ], axis = 1).drop(columns = ["Match_Pressure"])
+    total_vital_signs_data.append(select_vital_signs_data)
+### 針對每位病患個別進行合併 ###
 
+total_vital_signs_data = pd.concat(total_vital_signs_data, axis = 0)
+total_vital_signs_data.to_excel("preprocess_data/Merge_Vital_signs_and_Dialysis.xlsx", index = None)
