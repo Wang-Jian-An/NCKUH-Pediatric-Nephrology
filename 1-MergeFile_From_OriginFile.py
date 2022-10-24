@@ -35,6 +35,9 @@ for one_patient_path in tqdm(each_patient_path):
     all_dialysis_data = pd.concat([
         pd.read_excel( os.path.join(main_raw_data_path, one_patient_path, i), sheet_name = "Pressure" ) for i in dialysis_machine_data
     ], axis = 0).reset_index(drop = True)
+    
+    print(all_dialysis_data["time"])
+    
     original_columns = all_dialysis_data.columns.tolist()
     all_dialysis_data["Patient"] = patient_ID
     all_dialysis_data = all_dialysis_data[["Patient"] + original_columns]
@@ -50,10 +53,12 @@ for one_patient_path in tqdm(each_patient_path):
     if "記錄時間" in vital_sign_data.columns.tolist():
         vital_sign_data = vital_sign_data.rename(columns = {"記錄時間": "Time"})
     
+    # 透過每個檔案中針對低血壓的標準，判斷該筆資料是否有低血壓
     criterian_value = criterian_data.columns.tolist()[0]
     criterian_value = criterian_value[-2:] if "<" in criterian_value else criterian_value
     criterian_value = eval(criterian_value.split(" ")[-1])
     
+    vital_sign_data = vital_sign_data[(vital_sign_data["Art BP Systolic"].isna() == False) | (vital_sign_data["NBP Systolic"].isna() == False)] # 判斷 Art BP Systolic 或 NBP Systolic 是否有值，無值者直接刪除
     vital_sign_data["IDH"] = vital_sign_data.apply(lambda x: 1 if x["Art BP Systolic"] < criterian_value or x["NBP Systolic"] < criterian_value else 0, axis = 1)
     
     measure_data["Patient"] = patient_ID
