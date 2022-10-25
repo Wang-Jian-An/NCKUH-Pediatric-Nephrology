@@ -17,7 +17,6 @@ Dialysis_features = ["Arterial", "Venous", "PF", "PU", "TMP"]
 target = "IDH"
 inputFeatures = ["Patient", "Time", "Heart Rate"] + Dialysis_features
 
-
 # Imputation
 def impute_sequence(one_sequence: pd.DataFrame):
     
@@ -57,32 +56,38 @@ def compute_sequence_statistics(one_sequence: list,
                                 methods = "mean",
                                 diff_number: int = 1):
     
-    if methods == "mean":
-        return np.mean(one_sequence)
-    elif methods == "std":
-        return np.std(one_sequence)
-    elif methods == "max":
-        return np.max(one_sequence)
-    elif methods == "min":
-        return np.min(one_sequence)
-    elif methods == "median":
-        return np.median(one_sequence)
-    elif methods == "diff_mean":
-        diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
-        return np.mean(diff_one_sequence)
-    elif methods == "diff_std":
-        diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
-        return np.std(diff_one_sequence)
-    elif methods == "diff_max":
-        diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
-        return np.max(diff_one_sequence)
-    elif methods == "diff_min":
-        diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
-        return np.min(diff_one_sequence)
-    elif methods == "diff_median":
-        diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
-        return np.median(diff_one_sequence)
-    return 
+    if one_sequence.__len__() == 0:
+        return 0
+    else:
+        if methods == "mean": 
+            return np.mean(one_sequence)
+        elif methods == "std": 
+            return np.std(one_sequence)
+        elif methods == "max": 
+            return np.max(one_sequence)
+        elif methods == "min": 
+            return np.min(one_sequence)
+        elif methods == "median": 
+            return np.median(one_sequence)
+
+        if one_sequence.__len__() <= diff_number:
+            return 0
+        else:
+            if methods == "diff_mean": 
+                diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
+                return np.mean(diff_one_sequence)
+            elif methods == "diff_std": 
+                diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
+                return np.std(diff_one_sequence)
+            elif methods == "diff_max": 
+                diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
+                return np.max(diff_one_sequence)
+            elif methods == "diff_min": 
+                diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
+                return np.min(diff_one_sequence)
+            elif methods == "diff_median": 
+                diff_one_sequence = np.array(one_sequence[diff_number:]) - np.array(one_sequence[:-diff_number])
+                return np.median(diff_one_sequence)
 
 
 # 定義一個 Function，把時間序列資料統計量計算寫進去
@@ -101,9 +106,11 @@ def ML_feature_generation_flow():
             imputed_data["{}_{}".format(one_dialysis_feature, statistics)] = imputed_data[one_dialysis_feature].apply(lambda x:\
                 compute_sequence_statistics(one_sequence = x, methods = statistics))
             
-        for diff_statistics, diff_number in itertools.product(["mean", "std", "max", "min", "median"], list(range(1, 3, 1))):
+        for diff_statistics, diff_number in itertools.product(["mean", "std", "max", "min", "median"], list(range(2, 3, 1))):
             imputed_data["{}_diff_{}_{}".format(one_dialysis_feature, diff_number, diff_statistics)] = imputed_data[one_dialysis_feature].apply(lambda x:\
-                compute_sequence_statistics(one_sequence = x, methods = "diff_{}".format(diff_statistics), diff_number = diff_number))           
+                compute_sequence_statistics(one_sequence = x, methods = "diff_{}".format(diff_statistics), diff_number = diff_number))  
+
+        imputed_data["{}_sequence_length".format(one_dialysis_feature)] = imputed_data[one_dialysis_feature].apply(lambda x: x.__len__())  
     imputed_data = imputed_data.drop(columns = Dialysis_features)
     
     return imputed_data
@@ -114,5 +121,8 @@ writer = pd.ExcelWriter("preprocess_data/Feature_Engineer_Data.xlsx")
 feature_engineered_data.to_excel(writer, index = None)
 writer.close()
 
-with gzip.GzipFile("preprocess_data/Feature_Engineer_Data.gzip", "wb") as f:
+# with gzip.GzipFile("preprocess_data/Feature_Engineer_Data.gzip", "wb") as f:
+#     pickle.dump(feature_engineered_data, f)
+
+with open("preprocess_data/Feature_Engineer_Data.pickle", "wb") as f:
     pickle.dump(feature_engineered_data, f)

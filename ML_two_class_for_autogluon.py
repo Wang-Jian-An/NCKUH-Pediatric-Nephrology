@@ -25,7 +25,7 @@ from autogluon.tabular import TabularPredictor
 
 import warnings
 warnings.filterwarnings("ignore")
-import two_class_model_evaulation_DC
+import two_class_model_evaulation
 
 """
 本程式碼主旨：針對一組資料，進行模型訓練後，進行模型評估
@@ -45,7 +45,11 @@ def model_fit(trainData,
     totalFeatureImportanceResult = list()
 
     # Step2. 使用 TabularPredictor 進行模型訓練
-    predictor = TabularPredictor(label = target_label, verbosity = 0, problem_type = "binary", path = "C://RECYCLE")\
+    predictor = TabularPredictor(label = target_label, 
+                                 verbosity = 0, 
+                                 problem_type = "binary", 
+                                 path = "C://RECYCLE",
+                                 eval_metric = "f1")\
                             .fit(train_data = trainData[input_features + [target_label]], 
                                  tuning_data = valiData[input_features + [target_label]], 
                                  hyperparameter_tune_kwargs = hyperparameter_tuning, 
@@ -56,7 +60,9 @@ def model_fit(trainData,
 
     # Step4. 模型評估
     # ["test", "train", "vali"] [trainData, valiData, testData]
-    for one_model_name, (set_name, set) in itertools.product(all_model_list, zip(["train", "vali", "test"], [trainData, valiData, testData])):
+    for one_model_name, (set_name, set) in itertools.product(all_model_list, 
+                                                             zip(["train", "vali", "test"], 
+                                                                 [trainData, valiData, testData])):
         # print(f"Get {one_model_name}, {set_name} evaluation")
         basic_information = {
             "Model": one_model_name,
@@ -67,7 +73,7 @@ def model_fit(trainData,
         # Step3. 將測試資料放入訓練好的模型作預測
         yhat_test = predictor.predict(data = set, model = one_model_name)
         yhat_proba_test = predictor.predict_proba(data = set, model = one_model_name)
-        one_model_all_score = two_class_model_evaulation_DC.model_evaluation(ytrue = set[target_label],
+        one_model_all_score = two_class_model_evaulation.model_evaluation(ytrue = set[target_label],
                                                                         ypred = yhat_test,
                                                                         ypred_proba = yhat_proba_test.values[:, 1])
         totalResult.append({**basic_information, **one_model_all_score})
