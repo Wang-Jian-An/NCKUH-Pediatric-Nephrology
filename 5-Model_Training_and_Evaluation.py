@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 import ML_two_class_for_autogluon
 
 # 輸入原始資料
-with open("preprocess_data/Feature_Engineer_Data.pickle", "rb") as f:
+with gzip.GzipFile("preprocess_data/Feature_Engineer_Data-Flow-2.gzip", "rb") as f:
     raw_data = pickle.load(f)
 
 # 定義許多變數
@@ -34,11 +34,13 @@ def train_vali_test_split(data: pd.DataFrame, stratify_baseline = None):
     
     return trainData, valiData, testData
 
+ML_totalResult, FI_totalResult = list(), list()
 for data_id in range(1, 11, 1):
     trainData, valiData, testData = train_vali_test_split(data = raw_data, stratify_baseline = "Patient")
 
     # 模型訓練
     totalResult = ML_two_class_for_autogluon.model_fit(
+        data_id = data_id,
         trainData = trainData,
         valiData = valiData,
         testData = testData,
@@ -46,10 +48,10 @@ for data_id in range(1, 11, 1):
         target_label = target
     )
     
-    totalResult[0] = [{**{"Data_ID": data_id}, **i} for i in totalResult[0]]
-    totalResult[1] = [{**{"Data_ID": data_id}, **i} for i in totalResult[1]]
+    ML_totalResult.extend([{**{"Data_ID": data_id}, **i} for i in totalResult[0]])
+    FI_totalResult.extend([{**{"Data_ID": data_id}, **i} for i in totalResult[1]])
 
-writer = pd.ExcelWriter("result/ML-result-20221025.xlsx")
-pd.DataFrame(totalResult[0]).to_excel(writer, index = None, sheet_name = "Model_Evaluation")
-pd.DataFrame(totalResult[1]).to_excel(writer, index = None, sheet_name = "Permutation Importance")
+writer = pd.ExcelWriter("result/ML-result-Flow-2.xlsx")
+pd.DataFrame(ML_totalResult).to_excel(writer, index = None, sheet_name = "Model_Evaluation")
+pd.DataFrame(FI_totalResult).to_excel(writer, index = None, sheet_name = "Permutation Importance")
 writer.close()
