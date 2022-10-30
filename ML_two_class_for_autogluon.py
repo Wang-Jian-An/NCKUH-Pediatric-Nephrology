@@ -1,3 +1,4 @@
+import os
 import pickle
 import numpy as np
 import pandas as pd
@@ -10,15 +11,6 @@ from tqdm import tqdm
 tqdm.pandas()
 
 from datetime import datetime
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
-from catboost import CatBoostClassifier
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.preprocessing import StandardScaler, Normalizer
-from sklearn import decomposition
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.metrics import *
 from lime import lime_tabular
 from autogluon.tabular import TabularPredictor
@@ -34,13 +26,18 @@ import two_class_model_evaulation
 
 """
 
-def model_fit(trainData, 
+def model_fit(data_id,
+              trainData, 
               valiData, 
               testData, 
               input_features, 
               target_label, 
               hyperparameter_tuning = "bayesopt", 
               feature_importances = "PermutationImportance"):
+    
+    if f"Data_id_{data_id}" not in os.listdir("AutoML/"):
+        os.mkdir(f"AutoML/Data_id_{data_id}")
+    
     totalResult = list()
     totalFeatureImportanceResult = list()
 
@@ -48,7 +45,7 @@ def model_fit(trainData,
     predictor = TabularPredictor(label = target_label, 
                                  verbosity = 0, 
                                  problem_type = "binary", 
-                                 path = "C://RECYCLE",
+                                 path = f"AutoML/Data_id_{data_id}",
                                  eval_metric = "f1")\
                             .fit(train_data = trainData[input_features + [target_label]], 
                                  tuning_data = valiData[input_features + [target_label]], 
