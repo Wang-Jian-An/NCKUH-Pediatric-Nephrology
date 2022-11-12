@@ -1,4 +1,4 @@
-# Intradilytic Hypotension for Pediatric Nephrology in NCKUH
+# Intradialytic Hypotension for Pediatric Nephrology in NCKUH
 
 ---
 author: Jian-An, Wang
