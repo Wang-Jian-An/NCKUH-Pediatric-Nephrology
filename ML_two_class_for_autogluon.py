@@ -45,7 +45,7 @@ def model_fit(data_id,
     predictor = TabularPredictor(label = target_label, 
                                  verbosity = 0, 
                                  problem_type = "binary", 
-                                 path = f"AutoML/Data_id_{data_id}",
+                                 path = f"E://AutoML//Data_id_{data_id}",
                                  eval_metric = "f1")\
                             .fit(train_data = trainData[input_features + [target_label]], 
                                  tuning_data = valiData[input_features + [target_label]], 
