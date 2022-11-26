@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 
 # 輸入資料
-raw_data = pd.read_pickle("preprocess_data/Merge_Vital_signs_and_Dialysis-Merge-2.gzip", "gzip") 
+raw_data = pd.read_pickle("preprocessed_data/Merge_Vital_signs_and_Dialysis-Merge-2.gzip", "gzip") 
 
 # 定義變數
 PK = "Patient"
@@ -27,8 +27,10 @@ def split_train_vali_test_data(data_id, data, stratify: str, test_from_all_size 
     ]
     
 split_result = pd.DataFrame(
-    [i for one_data_id in range(1, 31, 1) for i in split_train_vali_test_data(data_id = one_data_id, data = raw_data, stratify = "patient")]
+    [i for one_data_id in range(1, 31, 1) for i in split_train_vali_test_data(data_id = one_data_id, 
+                                                                              data = raw_data, 
+                                                                              stratify = "patient")]
 )
 
-split_result.to_excel("preprocess_data/ID_split_MergeData-5.xlsx", index = None)
-split_result.to_pickle("preprocess_data/ID_split_MergeData-5.gzip", "gzip")
+split_result.to_excel("preprocessed_data/ID_split_Merge-2-patient.xlsx", index = None)
+split_result.to_pickle("preprocessed_data/ID_split_Merge-2-patient.gzip", "gzip") 
