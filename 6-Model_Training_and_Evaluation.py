@@ -1,6 +1,7 @@
 import os
 import gzip
 import pickle
+import shutil
 import itertools
 import numpy as np
 import pandas as pd
@@ -23,7 +24,7 @@ feature_selection_method_list = [None, "SFS", "SBS", "SFFS", "SFBS", "RFECV"]
 metaData_list = ["MetaData-1", "MetaData-2", "MetaData-3"] * 2
 mergeData_list = [*["Merge-1-patient"]*3, *["Merge-1-IDH"]*3]
 
-ML_totalResult, FI_totalResult = list(), list()
+ML_totalResult, FI_totalResult, HT_totalResult, PI_totalResult = list(), list(), list(), list()
 for one_metaData, one_mergeData in zip(metaData_list, mergeData_list):
     
     # 輸入原始資料
@@ -67,7 +68,6 @@ for one_metaData, one_mergeData in zip(metaData_list, mergeData_list):
             ### Normalization ###            
         
         # 模型訓練
-        
         totalResult = ML_two_class.model_fit(data_id = 1,
                                             trainData = trainData,
                                             valiData = valiData,
@@ -86,8 +86,31 @@ for one_metaData, one_mergeData in zip(metaData_list, mergeData_list):
         }
         ML_totalResult.extend([{**basic_result, **i} for i in totalResult[0]])
         FI_totalResult.extend([{**basic_result, **i} for i in totalResult[1]])
+        HT_totalResult.extend([{**basic_result, **i} for i in totalResult[2]])
+        PI_totalResult.extend([{**basic_result, **totalResult[3]}])
 
 writer = pd.ExcelWriter("result/ML-result-test.xlsx")
 pd.DataFrame(ML_totalResult).to_excel(writer, index = None, sheet_name = "Model_Evaluation")
 pd.DataFrame(FI_totalResult).to_excel(writer, index = None, sheet_name = "Permutation Importance")
+pd.DataFrame(HT_totalResult).to_excel(writer, index = None, sheet_name = "Hyperparameter Tuning")
 writer.close() 
+
+pd.DataFrame(ML_totalResult).to_pickle(os.path.join("result", "ML-result-test-Model_Evaluation.gzip"), "gzip")
+pd.DataFrame(FI_totalResult).to_pickle(os.path.join("result", "ML-result-test-Permutation Importance.gzip"), "gzip")
+pd.DataFrame(HT_totalResult).to_pickle(os.path.join("result", "ML-result-test-Hyperparameter Tuning.gzip"), "gzip")
+
+# 建立一個專屬於 PI 存放的資料夾
+if os.path.exists("PI_plot") == False :
+    os.mkdir("PI_plot")
+
+# 把所有 PI 圖片存放到資料夾中
+for one_image_dict in PI_totalResult:
+    print(one_image_dict)
+    for one_model_name, one_model in list(one_image_dict.items())[5:]:
+        if one_model is not None:
+            one_model.write_image(os.path.join("PI_plot", "{}_{}_{}_{}_{}_{}.png".format( *[*list(one_image_dict.values())[:5], one_model_name] )))
+
+
+zip_name = "PI_plot-20221124.zip"
+folder_name = "PI_plot"
+shutil.make_archive(zip_name, "zip", folder_name)    
