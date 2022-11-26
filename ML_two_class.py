@@ -60,6 +60,7 @@ def model_fit(data_id,
                                                                  [trainData, valiData, testData])):
         # print(f"Get {one_model_name}, {set_name} evaluation")
         basic_information = {
+            "Data_ID": data_id,
             "Model": one_model_name,
             "Features": predictor[one_model_name]["Features"],
             "Set": set_name,
@@ -75,7 +76,7 @@ def model_fit(data_id,
 
         # Step5. 變數重要性
         if feature_importances == "PermutationImportance":
-            print(f"Get {one_model_name}, {set_name} feature importances")
+            # print(f"Get {one_model_name}, {set_name} feature importances")
             feature_importances_information = {
                 "Model": one_model_name,
                 "Set": set_name
@@ -110,9 +111,21 @@ def model_fit(data_id,
                 except: 
                     pass
     
+    ### 將超參數調整流程結果作彙整 ###
+    hyperparameter_result = pd.concat(
+        [i["Hyperparameter_Tuning"] for i in predictor.values()], axis = 0
+    ).to_dict("records")
+    ### 將超參數調整流程結果作彙整 ###
+
+    ### 將超參數重要性的圖型作彙整 ###
+    param_plots = {
+        one_model_name: predictor[one_model_name]["Param_Importance"] for one_model_name in model_name_list
+    }
+    ### 將超參數重要性的圖型作彙整 ###
+
     if feature_importances == "PermutationImportance":
-        return totalResult, totalFeatureImportanceResult
+        return totalResult, totalFeatureImportanceResult, hyperparameter_result, param_plots
     elif feature_importances == "LIME":
-        return totalResult, lime_result
+        return totalResult, lime_result, hyperparameter_result, param_plots
     else:
-        return totalResult
+        return totalResult, hyperparameter_result, param_plots
