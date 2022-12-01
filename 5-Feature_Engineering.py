@@ -9,16 +9,20 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # 輸入資料
-raw_data = pd.read_pickle("preprocess_data/Merge_Vital_signs_and_Dialysis-Merge-2.gzip", "gzip") 
+raw_data = pd.read_pickle("preprocessed_data/Merge_Vital_signs_and_Dialysis-Merge-3.gzip", "gzip") 
 
 # 定義 Dialysis Data 中所有欄位、欲分析的所有變數與目標
 Dialysis_features = ["Arterial", "Venous", "PF", "PU", "TMP"]
 target = "Predict_IDH" if "Predict_IDH" in raw_data.columns else "IDH"
-inputFeatures = ["Patient", "Predict_Time"] +\
-                [i for i in ["end_of_the_time_of_data", "start_of_the_time_of_data"] if target == "Predict_IDH"] +\
-                ["Heart Rate" if target == "Predict_IDH" else None] +\
-                Dialysis_features 
+inputFeatures = [
+    *["Patient", "Predict_Time"],
+    *[i for i in ["end_of_the_time_of_data", "start_of_the_time_of_data"] if target == "Predict_IDH"],
+    *[i for i in raw_data.columns if "BP" in i or i == "start_Heart Rate"],
+    *["Heart Rate" if target == "Predict_IDH" else None],
+    *Dialysis_features
+]                 
 inputFeatures = [i for i in inputFeatures if i is not None]
+print(inputFeatures)
 
 # Imputation
 def impute_sequence(one_sequence: pd.DataFrame):
@@ -42,19 +46,20 @@ def imputation_flow(one_patient):
     # 把特定病人所有資料抓出來
     select_raw_data = raw_data.query("Patient == @one_patient").reset_index(drop = True)
     
-    if "Heart Rate" in inputFeatures:
-        select_raw_data.loc[:, "Heart Rate"] = impute_sequence(one_sequence = select_raw_data[["Time", "Heart Rate"]]).tolist()
-        select_raw_data = select_raw_data.query("`Heart Rate`.notnull()") # [select_raw_data["Heart Rate"].isna() == False]
+    # if "Heart Rate" in inputFeatures:
+    #     select_raw_data.loc[:, "Heart Rate"] = impute_sequence(one_sequence = select_raw_data[["Time", "Heart Rate"]]).tolist()
+    #     select_raw_data = select_raw_data.query("`Heart Rate`.notnull()") # [select_raw_data["Heart Rate"].isna() == False]
 
     # 把美筆資料的透析特徵的序列進行 Imputation
     for one_dialysis_features in Dialysis_features:
         select_raw_data.loc[:, one_dialysis_features] = select_raw_data.apply(lambda x:\
             impute_sequence(one_sequence = pd.DataFrame(x[["time", one_dialysis_features]].to_dict() )).tolist() , axis = 1)
-    return select_raw_data
+    return select_raw_data 
 
 imputed_data = pd.concat([
     imputation_flow(one_patient = one_patient) for one_patient in raw_data["Patient"].unique()
 ], axis = 0)
+print(imputed_data[[*inputFeatures, target]])
 
 # 定義一個 Function，經序列資料進行統計量計算
 def compute_sequence_statistics(one_sequence: list,
@@ -74,7 +79,7 @@ def compute_sequence_statistics(one_sequence: list,
         elif methods == "min": 
             return np.min(one_sequence)
         elif methods == "median": 
-            return np.median(one_sequence)
+            return np.median(one_sequence) 
 
         if one_sequence.__len__() <= diff_number:
             return 0
@@ -100,7 +105,7 @@ def ML_feature_generation_flow():
     2. 把 Dialysis Features 進行差分運算（要額外建立 Function）
     """
     
-    imputed_data = imputed_data[inputFeatures+[target]].copy().reset_index(drop = True)
+    imputed_data = imputed_data[[*inputFeatures, target]].copy().reset_index(drop = True)
         
     statistics_dict = {
         "{}_{}".format(one_dialysis_feature, statistics): imputed_data[one_dialysis_feature].apply(lambda x:\
@@ -118,7 +123,7 @@ def ML_feature_generation_flow():
                                         diff_retain_sequence = True)) \
                 for one_dialysis_feature, diff_statistics, diff_number in itertools.product(Dialysis_features, 
                                                                                             ["mean", "std", "max", "min", "median"], 
-                                                                                            list(range(1, 21, 1)) )
+                                                                                            list(range(1, differences_max, 1)) )
     } 
     
     num_of_seq_dict = {
@@ -135,10 +140,8 @@ def ML_feature_generation_flow():
     
     return imputed_data
 
+differences_max = 4
 feature_engineered_data = ML_feature_generation_flow()
 
-writer = pd.ExcelWriter("preprocess_data/Feature_Engineer_Merge2.xlsx") 
-feature_engineered_data.iloc[:100, :].to_excel(writer, index = None)
-writer.close()
-
-feature_engineered_data.to_pickle("preprocess_data/Feature_Engineer_Merge2.gzip", "gzip") 
+feature_engineered_data.to_excel("preprocessed_data/Feature_Engineer_MetaData-57.xlsx", index = None)
+feature_engineered_data.to_pickle("preprocessed_data/Feature_Engineer_MetaData-57.gzip", "gzip") 
