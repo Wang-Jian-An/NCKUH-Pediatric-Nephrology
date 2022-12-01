@@ -27,13 +27,14 @@ def match_data(select_pressure_data: pd.DataFrame, start_of_the_time, end_of_the
     else:
         return np.nan 
 
-# 定義出每筆資料應該要用哪個時間區段當作訓練資料
-one_hour_timedelta = timedelta(hours = 1) 
-vital_signs_data = vital_signs_data.rename(columns = {"Time": "Predict_Time"})
-vital_signs_data["end_of_the_time_of_data"] = vital_signs_data["Predict_Time"].apply(lambda x: x - one_hour_timedelta)
-vital_signs_data["start_of_the_time_of_data"] = vital_signs_data["end_of_the_time_of_data"].apply(lambda x: x - one_hour_timedelta)
+# ### 定義出每筆資料應該要用哪個時間區段當作訓練資料（Merge-1） ###
+# one_hour_timedelta = timedelta(hours = 1) 
+# vital_signs_data = vital_signs_data.rename(columns = {"Time": "Predict_Time"})
+# vital_signs_data["end_of_the_time_of_data"] = vital_signs_data["Predict_Time"].apply(lambda x: x - one_hour_timedelta)
+# vital_signs_data["start_of_the_time_of_data"] = vital_signs_data["end_of_the_time_of_data"].apply(lambda x: x - one_hour_timedelta)
+# ### 定義出每筆資料應該要用哪個時間區段當作訓練資料（Merge-1）###
 
-# ### Vital Signs 中其中一筆作為預測資料、前一筆為訓練資料 ###
+# ### Vital Signs 中其中一筆作為預測資料、前一筆為訓練資料（Merge-2） ###
 # totalResult = list()
 # for one_patient in vital_signs_data["Patient"].unique().tolist():
 #     select_vital_signs = vital_signs_data.query("Patient == @one_patient").rename(columns = {"Time": "end_of_the_time_of_data"}).reset_index(drop = True)
@@ -46,8 +47,38 @@ vital_signs_data["start_of_the_time_of_data"] = vital_signs_data["end_of_the_tim
 #     select_vital_signs = {**select_vital_signs.to_dict("list"), **predict_data_dict}
 #     totalResult.append(pd.DataFrame(select_vital_signs).query("Predict_Time.notnull()"))
 # vital_signs_data = pd.concat(totalResult, axis = 0)
-# ### Vital Signs 中其中一筆作為預測資料、前一筆為訓練資料 ### 
+# ### Vital Signs 中其中一筆作為預測資料、前一筆為訓練資料（Merge-2） ### 
 
+### Vital Signs 當前資料與其前一筆為訓練資料、下一筆為預測資料（Merge-3） ###
+totalResult = list()
+for one_patient in vital_signs_data["Patient"].unique().tolist():
+    select_vital_signs = vital_signs_data.query("Patient == @one_patient").reset_index(drop = True) # 當作當前資料
+    one_hour_ago_dict = { # 挑選出前一筆資料
+        **{"start_of_the_time_of_data": [np.nan] + select_vital_signs["Time"].tolist()[:-1]},
+        **{f"start_{i}": [np.nan] + select_vital_signs[i].tolist()[:-1] for i in select_vital_signs.columns if i not in ["Patient", "Time", "IDH"]}
+    }
+    predict_data_dict = { # 挑選出預測資料
+        "Predict_Time": select_vital_signs["Time"].tolist()[1:] + [np.nan],
+        "Predict_IDH": select_vital_signs["IDH"].tolist()[1:] + [np.nan]
+    }
+    one_patient_data = pd.concat([
+        select_vital_signs,
+        pd.DataFrame(one_hour_ago_dict),
+        pd.DataFrame(predict_data_dict)
+    ], axis = 1)
+    one_patient_data = one_patient_data.query("start_of_the_time_of_data.notnull()").query("Predict_Time.notnull()")
+    one_patient_data["Start_BP_Systolic"] = one_patient_data.apply(lambda x: x["start_NBP Systolic"] if np.isnan(x["start_Art BP Systolic"]) else x["start_Art BP Systolic"], axis = 1)
+    one_patient_data["Start_BP_Diastolic"] = one_patient_data.apply(lambda x: x["start_NBP Diastolic"] if np.isnan(x["start_Art BP Diastolic"]) else x["start_Art BP Diastolic"], axis = 1)
+    one_patient_data["Start_BP_Mean"] = one_patient_data.apply(lambda x: x["start_NBP Mean"] if np.isnan(x["start_Art BP Mean"]) else x["start_Art BP Mean"], axis = 1)
+    one_patient_data["BP_Systolic"] = one_patient_data.apply(lambda x: x["NBP Systolic"] if np.isnan(x["Art BP Systolic"]) else x["Art BP Systolic"], axis = 1)
+    one_patient_data["BP_Diastolic"] = one_patient_data.apply(lambda x: x["NBP Diastolic"] if np.isnan(x["Art BP Diastolic"]) else x["Art BP Diastolic"], axis = 1)
+    one_patient_data["BP_Mean"] = one_patient_data.apply(lambda x: x["NBP Mean"] if np.isnan(x["Art BP Mean"]) else x["Art BP Mean"], axis = 1)
+    one_patient_data = one_patient_data.drop(columns = ["start_Art BP Systolic", "start_Art BP Diastolic", "start_Art BP Mean", "Art BP Systolic", "Art BP Diastolic", "Art BP Mean",
+                                                        "start_NBP Systolic", "start_NBP Diastolic", "start_NBP Mean", "NBP Systolic", "NBP Diastolic", "NBP Mean"])
+    one_patient_data = one_patient_data.rename(columns = {"Time": "end_of_the_time_of_data"})
+    totalResult.append(one_patient_data.dropna())
+vital_signs_data = pd.concat(totalResult, axis = 0)
+### Vital Signs 當前資料與其前一筆為訓練資料、下一筆為預測資料（Merge-3） ###
 
 ### 針對每位病患個別進行合併 ###
 total_vital_signs_data = list()
@@ -71,5 +102,5 @@ for one_patient in tqdm.tqdm(vital_signs_data["Patient"].unique().tolist()):
 ### 針對每位病患個別進行合併 ### 
 
 total_vital_signs_data = pd.concat(total_vital_signs_data, axis = 0).reset_index(drop = True)
-total_vital_signs_data.iloc[:50, :].to_excel("preprocess_data/Merge_Vital_signs_and_Dialysis-Merge-1-sample（欲分析者請用gzip檔案）.xlsx", index = None)
-total_vital_signs_data.to_pickle("preprocess_data/Merge_Vital_signs_and_Dialysis-Merge-1.gzip", "gzip")
+total_vital_signs_data.iloc[:50, :].to_excel("preprocess_data/Merge_Vital_signs_and_Dialysis-Merge-3-sample（欲分析者請用gzip檔案）.xlsx", index = None)
+total_vital_signs_data.to_pickle("preprocess_data/Merge_Vital_signs_and_Dialysis-Merge-3.gzip", "gzip")
