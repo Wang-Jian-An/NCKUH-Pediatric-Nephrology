@@ -35,7 +35,8 @@ def model_fit(data_id,
               main_metric, 
               feature_selection_method = None, 
               hyperparameter_tuning = "bayesopt", 
-              feature_importances = "PermutationImportance"):
+              feature_importances = "PermutationImportance",
+              model_file_name = None):
     
     totalResult = list()
     totalFeatureImportanceResult = list()
@@ -51,7 +52,8 @@ def model_fit(data_id,
                                                              target_type = target_type,
                                                              model_name = model_name,
                                                              feature_selection_method = feature_selection_method,
-                                                             main_metric = main_metric).model_training() for model_name in model_name_list
+                                                             main_metric = main_metric,
+                                                             model_file_name = model_file_name).model_training() for model_name in model_name_list
     }
 
     # Step4. 模型評估
