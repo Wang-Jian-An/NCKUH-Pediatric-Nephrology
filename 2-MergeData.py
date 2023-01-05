@@ -102,5 +102,5 @@ for one_patient in tqdm.tqdm(vital_signs_data["Patient"].unique().tolist()):
 ### 針對每位病患個別進行合併 ### 
 
 total_vital_signs_data = pd.concat(total_vital_signs_data, axis = 0).reset_index(drop = True)
-total_vital_signs_data.iloc[:50, :].to_excel("preprocess_data/Merge_Vital_signs_and_Dialysis-Merge-3-sample（欲分析者請用gzip檔案）.xlsx", index = None)
-total_vital_signs_data.to_pickle("preprocess_data/Merge_Vital_signs_and_Dialysis-Merge-3.gzip", "gzip")
+total_vital_signs_data.iloc[:50, :].to_excel("preprocessed_data/Merge_Vital_signs_and_Dialysis-Merge-3-sample（欲分析者請用gzip檔案）.xlsx", index = None)
+total_vital_signs_data.to_pickle("preprocessed_data/Merge_Vital_signs_and_Dialysis-Merge-3.gzip", "gzip")
