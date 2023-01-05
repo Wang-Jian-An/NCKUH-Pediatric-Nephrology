@@ -165,19 +165,6 @@ class model_training_and_hyperparameter_tuning():
 
     def objective_function(self, trial):
 
-        # model_parameter_name = {
-        #     "Random Forest with Entropy": "Random Forest",
-        #     "Random Forest with Gini": "Random Forest",
-        #     "Extra Tree with Entropy": "Extra Tree",
-        #     "Extra Tree with Gini": "Extra Tree",
-        #     "XGBoost": "XGBoost",
-        #     "NGBoost": "NGBoost",
-        #     "CatBoost": "CatBoost",
-        #     "LightGBM": "LightGBM",
-        #     "NeuralNetwork": "NeuralNetwork"
-        # }[self.model_name]
-        # model = model_dict[self.target_type][self.model_name]
-
         model = self.choose_one_model()
         model.set_params(**self.model_parameter_for_optuna(trial))
         model.fit(self.trainData[self.inputFeatures], self.trainData[self.target])
