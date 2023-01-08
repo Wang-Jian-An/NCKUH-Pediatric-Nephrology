@@ -7,7 +7,7 @@ from tqdm import tqdm
 # 建立每個子目錄路徑
 main_raw_data_path = "raw_data/IDH data（分析用）"
 each_patient_path = [i for i in os.listdir(main_raw_data_path) if "Patient " in i]
-blood_pressure_column_list = ["Art BP Systolic", "Art BP Diastolic",	"Art BP Mean",	"NBP Systolic",	"NBP Diastolic", "NBP Mean"]
+blood_pressure_column_list = ["Art BP Systolic", "Art BP Diastolic", "Art BP Mean",	"NBP Systolic",	"NBP Diastolic", "NBP Mean"]
 
 try:
     os.mkdir(os.path.join(main_raw_data_path, "Patient_data"))
@@ -34,8 +34,6 @@ for one_patient_path in tqdm(each_patient_path):
     all_dialysis_data = pd.concat([
         pd.read_excel( os.path.join(main_raw_data_path, one_patient_path, i), sheet_name = "Pressure" ) for i in dialysis_machine_data
     ], axis = 0).reset_index(drop = True)
-    
-    print(all_dialysis_data["time"])
     
     original_columns = all_dialysis_data.columns.tolist()
     all_dialysis_data["Patient"] = patient_ID
@@ -75,15 +73,15 @@ dialysis_data_list = os.listdir(os.path.join(main_raw_data_path, "Dialysis_data"
 
 vital_signs_data = pd.concat([
     pd.read_excel(os.path.join(main_raw_data_path, "Patient_data", i), sheet_name = "Vital signs") for i in patient_data_list
-], axis = 0)
+], axis = 0).reset_index(drop = True)
 
 lab_data = pd.concat([
     pd.read_excel(os.path.join(main_raw_data_path, "Patient_data", i), sheet_name = "Lab") for i in patient_data_list
-], axis = 0)
+], axis = 0).reset_index(drop = True)
 
 dialysis_data = pd.concat([
     pd.read_excel(os.path.join(main_raw_data_path, "Dialysis_data", i)) for i in dialysis_data_list
-], axis = 0)
+], axis = 0).reset_index(drop = True)
 
 for file_name, file in zip(["Vital_signs", "Lab", "Dialysis"], [vital_signs_data, lab_data, dialysis_data]):
-    file.to_excel(os.path.join(main_raw_data_path, "{}.xlsx".format(file_name)), index = None)
+    file.to_pickle(os.path.join(main_raw_data_path, "{}.gzip".format(file_name)), "gzip")

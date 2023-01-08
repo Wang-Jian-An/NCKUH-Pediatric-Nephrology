@@ -1,44 +1,36 @@
 import os
 import gzip
 import pickle
-import datetime
-import shutil
 import itertools
 import numpy as np
 import pandas as pd
-import tqdm.contrib.itertools
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, Normalizer, MinMaxScaler
-from sklearn.decomposition import PCA, KernelPCA, IncrementalPCA
 
 import ML_two_class
 from FT_D_Pipeline import *
 
 # 定義許多變數
 PK = "Patient"
-Time_column = "Predict_Time"
-target = "IDH" 
 standardization_list = [None, "standardization", "normalization", "min-max_scaler"]
 decomposition_list = [None, "PCA", "KernelPCA", "IPCA"] 
 feature_selection_method_list = [None, "SFS", "SBS", "SFFS", "SFBS", "RFECV"]
-metaData_list = ["MetaData-1", "MetaData-2", "MetaData-3"] * 2
-mergeData_list = [*["Merge-1-patient"]*3, *["Merge-1-IDH"]*3]
-expected_end_time = "2022/11/29 08:00:00"
+mergeData_list = ["Merge-3"]
+split_id_list = ["Split-1"]
+metaData_list = ["MetaData-55"]
 
 ML_totalResult, FI_totalResult, HT_totalResult, PI_totalResult = list(), list(), list(), list()
-for one_metaData, one_mergeData in zip(metaData_list, mergeData_list):
+for one_metaData, one_mergeData, one_splitData in zip(metaData_list, mergeData_list, split_id_list):
     
     # 輸入原始資料
     raw_data = pd.read_pickle(os.path.join("preprocessed_data", f"Feature_Engineer_{one_metaData}.gzip"), "gzip")
-    ID_split = pd.read_pickle(os.path.join("preprocessed_data", f"ID_split_{one_mergeData}.gzip"), "gzip")
-    inputFeatures = [i for i in raw_data.columns if i not in [PK, Time_column, target]]
+    ID_split = pd.read_pickle(os.path.join("preprocessed_data", f"ID_split_{one_mergeData}-{one_splitData}.gzip"), "gzip")
+    target = "Predict_IDH" if "Predict_IDH" in raw_data.columns else "IDH"
+    Time_column = [i for i in raw_data.columns if "Time" in i or "time" in i]
     
     for standardization_method, decomposition_method, feature_selection_method, data_id in itertools.product(standardization_list[1:], 
                                                                                                              decomposition_list[1:], 
                                                                                                              feature_selection_method_list,
                                                                                                              range(1, 31, 1)): 
-        
+        inputFeatures = [i for i in raw_data.columns if i not in [PK, *Time_column, target]]
         trainData = raw_data.loc[ID_split.query("data_id == @data_id and split == 'train'")["id_list"].iloc[0], [*inputFeatures, target]].reset_index(drop = True)
         valiData = raw_data.loc[ID_split.query("data_id == @data_id and split == 'vali'")["id_list"].iloc[0], [*inputFeatures, target]].reset_index(drop = True)
         testData = raw_data.loc[ID_split.query("data_id == @data_id and split == 'test'")["id_list"].iloc[0], [*inputFeatures, target]].reset_index(drop = True)
@@ -47,7 +39,7 @@ for one_metaData, one_mergeData in zip(metaData_list, mergeData_list):
         trainData, valiData, testData = [
             ml_pipeline_obj.transform_Pipeline(one_data) for one_data in [trainData, valiData, testData]
         ]
-        with gzip.GzipFile("test_ML_Pipeline.gzip", "wb") as f:
+        with gzip.GzipFile(os.path.join("ML_Flow_Obj", f"ML_Pipeline_{one_mergeData}_{one_splitData}_{standardization_method}_{decomposition_method}_{feature_selection_method}_{data_id}.gzip"), "wb") as f:
             pickle.dump(ml_pipeline_obj, f)
         inputFeatures = [i for i in trainData.columns if i != target]
 
@@ -61,10 +53,12 @@ for one_metaData, one_mergeData in zip(metaData_list, mergeData_list):
                                             target_type = "classification",
                                             main_metric = "f1",
                                             feature_selection_method = feature_selection_method,
-                                            model_file_name = None)
+                                            model_file_name = None) 
         basic_result = {
             "Data_ID": data_id,
             "MetaData_ID": one_metaData,
+            "MergeData_ID": one_mergeData,
+            "Split_ID": one_splitData,
             "Standardization": standardization_method,
             "Decomposition": decomposition_method,
             "FeatureSelection": feature_selection_method,
