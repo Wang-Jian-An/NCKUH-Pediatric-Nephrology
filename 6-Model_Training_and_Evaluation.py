@@ -25,14 +25,12 @@ for one_metaData, one_mergeData, one_splitData in zip(metaData_list, mergeData_l
     ID_split = pd.read_pickle(os.path.join("preprocessed_data", f"ID_split_{one_mergeData}-{one_splitData}.gzip"), "gzip")
     target = "Predict_IDH" if "Predict_IDH" in raw_data.columns else "IDH"
     Time_column = [i for i in raw_data.columns if "Time" in i or "time" in i]
-    print(Time_column)
-    inputFeatures = [i for i in raw_data.columns if i not in [PK, *Time_column, target]]
     
     for standardization_method, decomposition_method, feature_selection_method, data_id in itertools.product(standardization_list[1:], 
                                                                                                              decomposition_list[1:], 
                                                                                                              feature_selection_method_list,
                                                                                                              range(1, 31, 1)): 
-        
+        inputFeatures = [i for i in raw_data.columns if i not in [PK, *Time_column, target]]
         trainData = raw_data.loc[ID_split.query("data_id == @data_id and split == 'train'")["id_list"].iloc[0], [*inputFeatures, target]].reset_index(drop = True)
         valiData = raw_data.loc[ID_split.query("data_id == @data_id and split == 'vali'")["id_list"].iloc[0], [*inputFeatures, target]].reset_index(drop = True)
         testData = raw_data.loc[ID_split.query("data_id == @data_id and split == 'test'")["id_list"].iloc[0], [*inputFeatures, target]].reset_index(drop = True)
