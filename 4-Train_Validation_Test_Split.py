@@ -1,3 +1,6 @@
+import os
+import zipfile
+import json
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -32,5 +35,6 @@ split_result = pd.DataFrame(
                                                                               stratify = "IDH")]
 )
 
-split_result.to_excel("preprocessed_data/ID_split_Merge-3-IDH.xlsx", index = None)
-split_result.to_pickle("preprocessed_data/ID_split_Merge-3-IDH.gzip", "gzip") 
+split_result.to_excel("preprocessed_data/ID_split_Merge-3-Split-2.xlsx", index = None)
+split_result.to_pickle("preprocessed_data/ID_split_Merge-3-Split-2.gzip", "gzip") 
+
