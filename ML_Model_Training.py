@@ -165,19 +165,6 @@ class model_training_and_hyperparameter_tuning():
 
     def objective_function(self, trial):
 
-        # model_parameter_name = {
-        #     "Random Forest with Entropy": "Random Forest",
-        #     "Random Forest with Gini": "Random Forest",
-        #     "Extra Tree with Entropy": "Extra Tree",
-        #     "Extra Tree with Gini": "Extra Tree",
-        #     "XGBoost": "XGBoost",
-        #     "NGBoost": "NGBoost",
-        #     "CatBoost": "CatBoost",
-        #     "LightGBM": "LightGBM",
-        #     "NeuralNetwork": "NeuralNetwork"
-        # }[self.model_name]
-        # model = model_dict[self.target_type][self.model_name]
-
         model = self.choose_one_model()
         model.set_params(**self.model_parameter_for_optuna(trial))
         model.fit(self.trainData[self.inputFeatures], self.trainData[self.target])
@@ -193,8 +180,8 @@ class model_training_and_hyperparameter_tuning():
     def model_parameter_for_optuna(self, trial):
         if self.model_name == "Random Forest with Entropy" or self.model_name == "Random Forest with Gini": 
             return {
-            "n_estimators": trial.suggest_int("n_estimators", 2, 1000),
-            "max_depth": trial.suggest_int("max_depth", 5, 50),
+            "n_estimators": trial.suggest_int("n_estimators", 2, 10000),
+            "max_depth": trial.suggest_int("max_depth", 5, 500),
             "min_samples_split": trial.suggest_int("min_samples_split", 2, 10),
             "min_samples_leaf": trial.suggest_int("min_samples_leaf", 2, 100),
             "min_weight_fraction_leaf": trial.suggest_float("min_weight_fraction_leaf", 0.0, 0.5),
@@ -207,9 +194,9 @@ class model_training_and_hyperparameter_tuning():
         elif self.model_name == "Extra Tree with Entropy" or self.model_name == "Extra Tree with Gini":
             return {
             "splitter": trial.suggest_categorical("splitter", ["random", "best"]),
-            "max_depth": trial.suggest_int("max_depth", 2, 100),
-            "min_samples_split": trial.suggest_float("min_samples_split", 0.01, 0.9),
-            "min_samples_leaf": trial.suggest_float("min_samples_leaf", 0.01, 0.9),
+            "max_depth": trial.suggest_int("max_depth", 2, 1000),
+            "min_samples_split": trial.suggest_float("min_samples_split", 0.01, 0.5),
+            "min_samples_leaf": trial.suggest_float("min_samples_leaf", 0.01, 0.5),
             "min_weight_fraction_leaf": trial.suggest_float("min_weight_fraction_leaf", 0.0, 0.5),
             "max_features": trial.suggest_categorical("max_features", ["sqrt", "log2"]),
             "max_leaf_nodes": trial.suggest_int("max_leaf_nodes", 2, 200),
@@ -218,10 +205,10 @@ class model_training_and_hyperparameter_tuning():
         }
         elif self.model_name == "XGBoost":
             return {
-            "n_estimators": trial.suggest_int("n_estimators", 2, 1000),
-            "max_depth": trial.suggest_int("max_depth", 5, 50), 
-            "max_leaves": trial.suggest_int("max_leaves", 2, 30), 
-            "max_bin": trial.suggest_int("max_bin", 2, 10), 
+            "n_estimators": trial.suggest_int("n_estimators", 2, 10000),
+            "max_depth": trial.suggest_int("max_depth", 5, 500), 
+            "max_leaves": trial.suggest_int("max_leaves", 2, 300), 
+            "max_bin": trial.suggest_int("max_bin", 2, 100), 
             "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-2),
             "tree_method": trial.suggest_categorical("tree_method", ["exact", "approx", "hist"]),
             "subsample": trial.suggest_float("subsample", 0.1, 0.9),
@@ -241,7 +228,6 @@ class model_training_and_hyperparameter_tuning():
         }
         elif self.model_name == "CatBoost":
             return {
-            "iterations": trial.suggest_int("iterations", 100, 1000), # 樹的數量
             "od_type": trial.suggest_categorical("od_type", ["IncToDec", "Iter"]), # 過擬合偵測器
             "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-1), # 學習率
             "depth": trial.suggest_int("depth", 5, 16), # 樹的深度 
